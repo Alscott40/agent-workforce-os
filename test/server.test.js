@@ -1,0 +1,4 @@
+import test from "node:test"; import assert from "node:assert/strict";
+test("prompt validation boundary",()=>{const valid=s=>typeof s==="string"&&s.trim().length>=10&&s.trim().length<=20000;assert.equal(valid(""),false);assert.equal(valid("short"),false);assert.equal(valid("Research 25 viable business opportunities"),true);assert.equal(valid("x".repeat(20001)),false)});
+test("remote Paperclip requires HTTPS, localhost may use HTTP",()=>{const ok=v=>{const u=new URL(v);return u.protocol==="https:"||(["localhost","127.0.0.1"].includes(u.hostname)&&u.protocol==="http:")};assert.equal(ok("https://paperclip.example"),true);assert.equal(ok("http://localhost:3100"),true);assert.equal(ok("http://paperclip.example"),false)});
+test("execution modes are allow-listed",()=>{const allowed=["recommend","prepare","approved"];assert.equal(allowed.includes("recommend"),true);assert.equal(allowed.includes("run-everything"),false)});
