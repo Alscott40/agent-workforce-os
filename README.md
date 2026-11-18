@@ -40,7 +40,7 @@ Never commit .env or credentials. The API token stays server-side. Remote Paperc
 - POST /api/companies/{companyId}/issues
 
 ## OSIRIS
-Add https://osirisai.live/api/mcp as a custom MCP server in the configuration of selected Paperclip agents. Verify tool discovery inside Paperclip before assigning research. Start with passive public intelligence tools. CommandOS does not claim OSIRIS is connected until actual agent findings are returned.
+CommandOS can test the OSIRIS MCP Streamable HTTP handshake and list tools at https://osirisai.live/api/mcp. In Paperclip, add that URL under Connectors as a custom MCP server and grant it only to selected agents. Public intelligence tools need no OSIRIS key. OI prediction tools require X-OI-Provider and X-OI-Key connection headers; the provider key is billed by its provider. Verify tool discovery in Paperclip before assigning research. A successful MCP handshake proves tool discovery only, not that a Paperclip agent has used the tools or returned findings.
 
 ## Safety
 Recommend-only is the default. This initial version displays approvals but does not approve them or execute external side effects. Browser code never receives the Paperclip API token.
