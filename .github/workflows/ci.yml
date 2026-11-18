@@ -3,7 +3,7 @@ on:
   push:
     branches: ["feature/commandos-paperclip-osiris", "fix/paperclip-osiris-mcp"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "feature/commandos-paperclip-osiris"]
 jobs:
   verify:
     runs-on: ubuntu-latest
