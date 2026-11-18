@@ -9,11 +9,11 @@ const asyncRoute=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(nex
 async function pc(route,opts={}){const c=required(),controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);try{const r=await fetch(c.url+"/api"+route,{...opts,signal:controller.signal,headers:{Authorization:"Bearer "+c.token,"Content-Type":"application/json",...(opts.headers||{})}});const data=await r.json().catch(()=>({}));if(!r.ok)throw Object.assign(new Error(data.error||data.message||"Paperclip HTTP "+r.status),{status:r.status});return data}finally{clearTimeout(timer)}}
 
 const OSIRIS_MCP_URL="https://osirisai.live/api/mcp";
-async function osirisMcpPost(message,sessionId){
+async function osirisMcpPost(message,sessionId,protocolVersion){
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try{
     const headers={"Content-Type":"application/json","Accept":"application/json, text/event-stream"};
-    if(sessionId)headers["MCP-Session-Id"]=sessionId;
+    if(sessionId)headers["MCP-Session-Id"]=sessionId;if(protocolVersion)headers["MCP-Protocol-Version"]=protocolVersion;
     const response=await fetch(OSIRIS_MCP_URL,{method:"POST",headers,body:JSON.stringify(message),signal:controller.signal});
     const raw=await response.text();
     if(!response.ok)throw Object.assign(new Error("OSIRIS MCP HTTP "+response.status+(raw?": "+raw.slice(0,300):"")),{status:response.status});
@@ -30,8 +30,8 @@ async function osirisMcpPost(message,sessionId){
 async function checkOsirisMcp(){
   const init=await osirisMcpPost({jsonrpc:"2.0",id:1,method:"initialize",params:{protocolVersion:"2025-03-26",capabilities:{},clientInfo:{name:"CommandOS",version:"1.0.0"}}});
   if(!init.payload?.result?.protocolVersion)throw new Error("OSIRIS MCP did not complete the initialization handshake.");
-  const ready=await osirisMcpPost({jsonrpc:"2.0",method:"notifications/initialized"},init.sessionId);
-  const listed=await osirisMcpPost({jsonrpc:"2.0",id:2,method:"tools/list",params:{}},ready.sessionId||init.sessionId);
+  const protocolVersion=init.payload.result.protocolVersion;\n  const ready=await osirisMcpPost({jsonrpc:"2.0",method:"notifications/initialized"},init.sessionId,protocolVersion);
+  const listed=await osirisMcpPost({jsonrpc:"2.0",id:2,method:"tools/list",params:{}},ready.sessionId||init.sessionId,protocolVersion);
   const tools=listed.payload?.result?.tools;
   if(!Array.isArray(tools))throw new Error("OSIRIS MCP connected but did not return a tools list.");
   return {ok:true,connected:true,server:OSIRIS_MCP_URL,transport:"Streamable HTTP",toolCount:tools.length,tools:tools.map(tool=>tool.name).filter(Boolean),checkedAt:new Date().toISOString()};
@@ -47,4 +47,4 @@ app.get("/api/paperclip/approvals",asyncRoute(async(_q,s)=>{const c=required();s
 app.post("/api/paperclip/issues",asyncRoute(async(q,s)=>{const b=q.body||{},prompt=typeof b.prompt==="string"?b.prompt.trim():"";if(prompt.length<10||prompt.length>20000)return s.status(400).json({error:"Prompt must contain 10 to 20,000 characters."});if(!["recommend","prepare","approved"].includes(b.mode||"recommend"))return s.status(400).json({error:"Invalid execution permission."});const c=required(),title=prompt.split(/\n/).find(Boolean).slice(0,120)||"Business command",guard=b.mode==="prepare"?"Prepare actions for explicit human approval. Do not execute external side effects.":b.mode==="approved"?"Only steps receiving explicit per-action human approval may be executed through authorized systems.":"Recommend-only. Research and prepare recommendations; do not execute external side effects.",description="## Detailed business instruction\n\n"+prompt+"\n\nEXECUTION POLICY: "+guard+"\n\nINTELLIGENCE SOURCE: If this agent has OSIRIS MCP configured, use available passive/public intelligence tools. Cite source links and timestamps. If unavailable, state that OSIRIS is not connected; do not invent findings.\n\nCommandOS metadata: category="+String(b.category||"General")+"; mode="+(b.mode||"recommend")+"; submittedAt="+new Date().toISOString(),payload={title,description,status:"todo",priority:["low","medium","high","urgent"].includes(b.priority)?b.priority:"medium"};if(typeof b.assigneeAgentId==="string"&&b.assigneeAgentId)payload.assigneeAgentId=b.assigneeAgentId;const created=await pc("/companies/"+encodeURIComponent(c.company)+"/issues",{method:"POST",body:JSON.stringify(payload)});s.status(201).json(created)}));
 app.use((err,_q,s,_n)=>{const status=Number(err.status)||(err.name==="AbortError"?504:502);s.status(status).json({error:status===502?"Could not reach Paperclip. Check the server URL and network.":err.message,status})});
 if(process.env.NODE_ENV==="production"){app.use(express.static(path.resolve(root,"dist")));app.get("*",(_q,s)=>s.sendFile(path.resolve(root,"dist/index.html")))}
-app.listen(port,"0.0.0.0",()=>console.log("CommandOS API listening on "+port));
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))app.listen(port,"0.0.0.0",()=>console.log("CommandOS API listening on "+port));\nexport {app};
