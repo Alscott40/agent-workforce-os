@@ -1,7 +1,7 @@
 name: CommandOS CI
 on:
   push:
-    branches: ["feature/commandos-paperclip-osiris"]
+    branches: ["feature/commandos-paperclip-osiris", "fix/paperclip-osiris-mcp"]
   pull_request:
     branches: ["main"]
 jobs:
