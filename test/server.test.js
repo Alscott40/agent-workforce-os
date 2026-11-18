@@ -7,7 +7,7 @@ test("execution modes are allow-listed",()=>{const allowed=["recommend","prepare
 test("async Paperclip route failures return a structured response instead of hanging",async t=>{
   const keys=["PAPERCLIP_BASE_URL","PAPERCLIP_COMPANY_ID","PAPERCLIP_API_TOKEN"],old=Object.fromEntries(keys.map(k=>[k,process.env[k]]));
   keys.forEach(k=>delete process.env[k]);
-  const server=app.listen(0);t.after(()=>{server.close();for(const k of keys){if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k]}});
+  const server=app.listen(0);await new Promise(resolve=>server.once("listening",resolve));t.after(()=>new Promise(resolve=>{server.close(resolve);for(const k of keys){if(old[k]===undefined)delete process.env[k];else process.env[k]=old[k]}}));
   const address=server.address(),response=await fetch("http://127.0.0.1:"+address.port+"/api/paperclip/agents"),body=await response.json();
   assert.equal(response.status,424);assert.match(body.error,/PAPERCLIP_BASE_URL/);
 });
